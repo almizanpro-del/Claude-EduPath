@@ -118,7 +118,7 @@ export async function getUniversityReviews(universityId: string) {
     .from('reviews')
     .select('*')
     .eq('university_id', universityId)
-    .eq('is_verified', true)
+    .eq('moderation_status', 'approved')
     .order('helpful_count', { ascending: false })
 
   if (error) {
@@ -134,7 +134,7 @@ export async function getUniversityAverageRating(universityId: string) {
     .from('reviews')
     .select('rating_overall')
     .eq('university_id', universityId)
-    .eq('is_verified', true)
+    .eq('moderation_status', 'approved')
 
   if (error) {
     console.error('Error fetching average rating:', error)

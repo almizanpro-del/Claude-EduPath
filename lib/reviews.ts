@@ -82,7 +82,7 @@ export async function getReviewsByKeywords(keywords: string[]) {
     .from('reviews')
     .select('*')
     .overlaps('keywords', keywords)
-    .eq('is_verified', true)
+    .eq('moderation_status', 'approved')
     .order('helpful_count', { ascending: false })
 
   if (error) {

@@ -85,10 +85,13 @@ export default function UniversityPage({
         helpful_count: 0,
         unhelpful_count: 0,
         is_verified: false,
+        moderation_status: 'pending',
       })
 
       if (newReview) {
-        setReviews([newReview, ...reviews])
+        // Don't inject into the public `reviews` list: it's moderation_status
+        // 'pending' and won't actually be visible to anyone else until an
+        // admin approves it, so showing it here would misrepresent it as live.
         setReviewForm({
           rating_overall: 5,
           rating_affordability: 5,
@@ -96,7 +99,7 @@ export default function UniversityPage({
           rating_job_outcomes: 5,
           review_text: '',
         })
-        alert('Review submitted! It will be verified soon.')
+        alert('Review submitted! It will appear once approved by our team.')
       }
     } catch (error) {
       console.error('Error submitting review:', error)

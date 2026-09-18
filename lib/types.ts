@@ -61,6 +61,10 @@ export interface Review {
   helpful_count: number
   unhelpful_count: number
   is_verified: boolean
+  // Admin moderation gate: only 'approved' reviews are shown publicly.
+  // Distinct from is_verified, which is about the reviewer's identity
+  // (verified student), not whether the review content has been approved.
+  moderation_status: 'pending' | 'approved' | 'rejected'
   created_at: string
   updated_at: string
 }
