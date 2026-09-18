@@ -223,12 +223,9 @@ export default function UniversityPage({
                     <p>
                       <span className="text-gray-600">Duration:</span> {program.duration_years} years
                     </p>
-{program.tuition_usd && (
-  <p>
-    <span className="text-gray-600">Tuition:</span> ${program.tuition_usd}/year
-  </p>
-)}                      <p>
-                        <span className="text-gray-600">Tuition:</span> ${program.tuition_per_year_usd}/year
+                    {program.tuition_usd && (
+                      <p>
+                        <span className="text-gray-600">Tuition:</span> ${program.tuition_usd}/year
                       </p>
                     )}
                     {program.language_of_instruction && (
