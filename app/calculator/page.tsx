@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Header } from '@/components/Header'
 import { searchUniversities } from '@/lib/universities'
+import { getLatestFxRates, FALLBACK_FX_RATES } from '@/lib/fx'
 import type { University } from '@/lib/types'
 
 export default function CalculatorPage() {
@@ -12,6 +13,11 @@ export default function CalculatorPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<University[]>([])
   const [loading, setLoading] = useState(false)
+  const [currencyRates, setCurrencyRates] = useState<Record<string, number>>(FALLBACK_FX_RATES)
+
+  useEffect(() => {
+    getLatestFxRates().then(setCurrencyRates)
+  }, [])
 
   const handleSearch = async (query: string) => {
     if (query.length < 2) {
@@ -47,15 +53,6 @@ export default function CalculatorPage() {
     const tuition = uni.intl_tuition_usd || 0
     const living = uni.living_cost_usd || 0
     return (tuition + living) * years
-  }
-
-  const currencyRates: { [key: string]: number } = {
-    USD: 1,
-    EUR: 0.92,
-    GBP: 0.79,
-    JOD: 0.71,
-    AED: 3.67,
-    EGP: 30.8,
   }
 
   const convertCurrency = (amount: number, to: string): number => {

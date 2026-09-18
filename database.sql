@@ -115,6 +115,31 @@ CREATE TABLE IF NOT EXISTS email_alerts (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- FX Rates Table (cache for the cost calculator's currency conversion,
+-- refreshed daily by app/api/cron/refresh-fx)
+CREATE TABLE IF NOT EXISTS fx_rates (
+  id BIGSERIAL PRIMARY KEY,
+  base VARCHAR(3) NOT NULL,
+  quote VARCHAR(3) NOT NULL,
+  rate DECIMAL(18, 6) NOT NULL,
+  fetched_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  source VARCHAR(100) NOT NULL,
+  UNIQUE (base, quote)
+);
+
+-- Audit Log Table (append-only record of admin actions, e.g. review
+-- moderation decisions)
+CREATE TABLE IF NOT EXISTS audit_log (
+  id BIGSERIAL PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  action VARCHAR(50) NOT NULL,
+  entity_type VARCHAR(50) NOT NULL,
+  entity_id TEXT NOT NULL,
+  before JSONB,
+  after JSONB,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 -- Create indexes for better query performance
 CREATE INDEX idx_universities_country ON universities(country);
 CREATE INDEX idx_universities_intl_tuition ON universities(intl_tuition_usd);
@@ -129,6 +154,9 @@ CREATE INDEX idx_reviews_moderation_status ON reviews(university_id, moderation_
 CREATE INDEX idx_saved_lists_user ON saved_lists(user_id);
 CREATE INDEX idx_email_alerts_user ON email_alerts(user_id);
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_fx_rates_base_quote ON fx_rates(base, quote);
+CREATE INDEX idx_audit_log_entity ON audit_log(entity_type, entity_id);
+CREATE INDEX idx_audit_log_user_created ON audit_log(user_id, created_at);
 
 -- Enable RLS (Row Level Security)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -211,3 +239,15 @@ CREATE POLICY "Programs are readable by all" ON programs
 ALTER TABLE scholarships ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Scholarships are readable by all" ON scholarships
   FOR SELECT USING (true);
+
+-- FX rates: public read (calculator is used by anonymous visitors), no
+-- write policy for anon/authenticated -- only the service-role cron route
+-- can write.
+ALTER TABLE fx_rates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "FX rates are public" ON fx_rates
+  FOR SELECT USING (true);
+
+-- Audit log: RLS enabled with zero policies means no client role (anon or
+-- authenticated) can read or write it at all -- only the service-role
+-- client used in admin API routes can touch it.
+ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;

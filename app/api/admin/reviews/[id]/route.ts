@@ -21,6 +21,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "action must be 'approve' or 'reject'" }, { status: 400 })
   }
 
+  const { data: before } = await supabaseAdmin
+    .from('reviews')
+    .select('id, moderation_status')
+    .eq('id', id)
+    .single()
+
   const { data, error } = await supabaseAdmin
     .from('reviews')
     .update({ moderation_status: nextStatus })
@@ -35,6 +41,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   if (!data) {
     return NextResponse.json({ error: 'Review not found' }, { status: 404 })
+  }
+
+  // Best-effort: an audit log failure shouldn't undo or block a moderation
+  // decision that already succeeded, but it's worth knowing about.
+  const { error: auditError } = await supabaseAdmin.from('audit_log').insert({
+    user_id: auth.userId,
+    action: nextStatus === 'approved' ? 'review.approve' : 'review.reject',
+    entity_type: 'review',
+    entity_id: id,
+    before,
+    after: data,
+  })
+  if (auditError) {
+    console.error('[admin/reviews PATCH] audit log insert failed:', auditError)
   }
 
   return NextResponse.json({ review: data })
