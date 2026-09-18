@@ -73,6 +73,11 @@ export function Header() {
                   <Link href="/saved-lists" className="block px-4 py-2 hover:bg-gray-50">
                     Saved Lists
                   </Link>
+                  {user.is_admin && (
+                    <Link href="/admin/reviews" className="block px-4 py-2 hover:bg-gray-50">
+                      Review Moderation
+                    </Link>
+                  )}
                   <button
                     onClick={handleSignOut}
                     className="w-full text-left px-4 py-2 hover:bg-gray-50 text-red-600"

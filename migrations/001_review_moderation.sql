@@ -57,7 +57,12 @@ CREATE OR REPLACE FUNCTION reject_moderation_status_change_by_non_admin()
 RETURNS TRIGGER AS $$
 BEGIN
   IF NEW.moderation_status IS DISTINCT FROM OLD.moderation_status THEN
-    IF NOT EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.is_admin = true) THEN
+    -- service_role (our admin API route) bypasses RLS but NOT triggers, and
+    -- has no auth.uid() since it isn't a logged-in user's JWT -- it's a
+    -- trusted backend context by definition, so allow it. Anything else
+    -- must be an authenticated admin's own uid.
+    IF auth.role() != 'service_role'
+       AND NOT EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.is_admin = true) THEN
       RAISE EXCEPTION 'Only admins can change a review''s moderation_status';
     END IF;
   END IF;
