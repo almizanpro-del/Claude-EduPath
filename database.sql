@@ -140,6 +140,25 @@ CREATE TABLE IF NOT EXISTS audit_log (
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+-- Scraped University Staging Table (landing zone for scraper/ pipeline
+-- output; never written to the live universities table directly)
+CREATE TABLE IF NOT EXISTS scraped_universities (
+  id BIGSERIAL PRIMARY KEY,
+  source VARCHAR(100) NOT NULL,
+  source_record_id TEXT,
+  normalized_name TEXT NOT NULL,
+  country VARCHAR(100) NOT NULL,
+  raw_data JSONB NOT NULL,
+  quality_score INT NOT NULL CHECK (quality_score BETWEEN 0 AND 100),
+  duplicate_of_id BIGINT REFERENCES scraped_universities(id),
+  review_status VARCHAR(20) NOT NULL DEFAULT 'pending_review'
+    CHECK (review_status IN ('pending_review', 'auto_rejected', 'promoted', 'rejected')),
+  promoted_university_id UUID REFERENCES universities(id),
+  scraped_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  UNIQUE (source, normalized_name, country)
+);
+
 -- Create indexes for better query performance
 CREATE INDEX idx_universities_country ON universities(country);
 CREATE INDEX idx_universities_intl_tuition ON universities(intl_tuition_usd);
@@ -157,6 +176,8 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_fx_rates_base_quote ON fx_rates(base, quote);
 CREATE INDEX idx_audit_log_entity ON audit_log(entity_type, entity_id);
 CREATE INDEX idx_audit_log_user_created ON audit_log(user_id, created_at);
+CREATE INDEX idx_scraped_universities_review_status ON scraped_universities(review_status, quality_score DESC);
+CREATE INDEX idx_scraped_universities_normalized_name ON scraped_universities(normalized_name);
 
 -- Enable RLS (Row Level Security)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -251,3 +272,9 @@ CREATE POLICY "FX rates are public" ON fx_rates
 -- authenticated) can read or write it at all -- only the service-role
 -- client used in admin API routes can touch it.
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
+
+-- Scraped universities staging: same "zero policies" pattern as audit_log
+-- -- unreviewed/possibly-wrong scraped data should never be client
+-- readable. Only the scraper's service-role writer and a future admin
+-- review UI can touch this table.
+ALTER TABLE scraped_universities ENABLE ROW LEVEL SECURITY;

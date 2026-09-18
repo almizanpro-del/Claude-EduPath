@@ -16,3 +16,10 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# python scraper
+scraper/.venv/
+scraper/__pycache__/
+scraper/**/__pycache__/
+scraper/.pytest_cache/
+*.pyc
